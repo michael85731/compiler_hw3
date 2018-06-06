@@ -1,0 +1,105 @@
+程式開發：
+用Flex, BISON, GCC與老師提供的Java assembler開發
+
+1. 程式限制與說明
+	- 只支援Integer的相關操作，其他Float, String都不支援
+	- String只能用於print的Function，沒有做變數相關的操作
+	- 沒有main宣告時會自動加上並跳出警告
+	- 試圖修改Constant時會有警告
+
+2. 以下是Symbol Table的欄位 				
+	型態 	名稱[大小] 				用途
+	char 	name[100] 				Variable or Function name	
+	int 	mutable					判斷是否為常數
+	char	dataType[10]			資料型態
+	char 	value[100]				常數的內容
+	int 	stackIndex				在Local variable stack裡的index
+	char 	format[200]				Function's parameter format
+	int 	insideVariableIndex		Function內變數紀錄的Table index
+	
+	Function及Variable各自有對應的儲存Function，儲存的相關資訊如下
+
+ - Variable儲存的相關欄位
+   1. name 紀錄名稱
+   2. mutable = 1 表示為變數
+   3. dataType 紀錄型態
+   4. stackIndex 紀錄在JVM的Local variable stack裡的index
+
+ - Constant儲存的相關欄位
+   1. name 紀錄名稱
+   2. mutable = 0 表示為常數
+   3. dataType 紀錄型態
+   4. value 紀錄值
+   5. stackIndex 紀錄在JVM的Local variable stack裡的index
+
+ - Function儲存的相關欄位
+   1. name 紀錄名稱
+   2. dataType 紀錄回傳值
+   3. format 紀錄Function要傳遞的參數型態
+   4. insideVariableIndex 紀錄該Function下的變數儲存在哪個表裡面
+	
+3. Symbol Table相關的Function如下
+	void symbolTableInit();
+		- 給予Symbol Table初始值
+	int findAvailable();
+		- 找到Symbol Table中目前可儲存的位置
+	int* lookup(char* name);
+		- 找到指定name儲存的位置，沒找到會回傳-1
+	void dump();
+		- 將Symbol Table內的資料印出
+	int checkIdExist(char* name);
+		- 用於檢查ID的assignment，當指派的資料為變數時會檢查該變數是否存在於Symbol Table
+
+4. File相關操作，用於寫入.jasm檔案用
+	FILE* file;
+		- File pointer，用於操作寫入的.jasm檔案
+	char className[100];
+		- 儲存測試檔案的檔名，輸出的檔名會與測試檔案的檔名相同，e.g. test.rust -> test.jasm
+	void fileInit(char* target);
+		- 初始化檔案
+	void fileEnd();
+		- 檔案結束時呼叫地的處理Function
+	void writeLine(char* code);
+		- 用於寫入檔案的Function
+	void classNameFilter(char* target);
+		- 取得測試檔案檔名的Function
+
+5. 各式Counter與Buffer的使用說明
+	int symbolTableCounter = 0;
+		- 紀錄Symbol Table目前位置，有Function宣告時會自動+1
+	int stackIndexCounter = 0;
+		- 在JVM中Local Variable Stack的位置，有新Function宣告時會歸零
+	int blockCounter = 0;
+		- 用於if與while宣告時，紀錄goto等需要的Block數量宣告
+	int lastBlockCounter = 0;
+		- 同上
+	int writeValueSwitch = 1;
+		- 如果目前的資料為Constant則不會寫入至Operand Stack的判斷變數
+	char stringBuffer[100];
+		- 一個String Buffer，暫存個式需要的資料
+	char lineBuffer[100];
+		- 紀錄每一行寫入.jasm檔案的Buffer，用於print or println時判斷型態
+
+6. 各式Write Function
+	void writeValue(int type, char* value);
+		- 寫入常數Value，當目前宣告為constant時則不會寫入任何東西
+	void writeVariableDefinition();
+		- 寫入變數宣告相關的Function
+	void writeIdAssignment();
+		- 寫入ID = EXPRESSION的Function
+	void writeLoadVariableValue();
+		- 當有ID = ID的EXPRESSION出現時，會載入Symbol Table中的資訊，並判斷是否push進operand stack或get static
+	void writeFunctionDefinition();
+		- 寫入Function宣告的Function
+	void writeBooleanExpression();
+		- 寫入Boolean Expression宣告的Function
+	void writePrintExpression(int part, char* method);
+		- 寫入Print相關的Function
+	void writeFunctionInvocation();
+		- 寫入Function Call相關的Function
+	void writeFunctionInvocationParameter(char* dataType);
+		- 寫入Function Call相關參數的Function
+	void writeIfBlock(int part);
+		- 寫入If block的Function
+	void writeWhileBlock(int part);
+		- 寫入While block的Function
